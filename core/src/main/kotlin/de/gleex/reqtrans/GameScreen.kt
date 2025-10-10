@@ -1,21 +1,35 @@
 package de.gleex.reqtrans
 
+import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.utils.viewport.FitViewport
-import com.github.tommyettinger.colorful.ipt.ColorfulBatch
+import com.github.tommyettinger.colorful.rgb.ColorTools
+import com.github.tommyettinger.colorful.rgb.ColorfulBatch
+import com.github.tommyettinger.colorful.rgb.ColorfulSprite
 import com.github.tommyettinger.colorful.rgb.Palette
 import ktx.app.KtxScreen
 import ktx.app.clearScreen
 import ktx.assets.disposeSafely
 import ktx.assets.toInternalFile
 import ktx.graphics.use
+import kotlin.random.Random
 
 class GameScreen : KtxScreen {
     // TODO use AssetManager
     private val image = Texture(
         "spaceIcons/single/Retina/ship_C.png".toInternalFile(),
         true
-    ).apply { setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear) }
+    ).apply {
+        setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
+    }
+
+    private val personSprite = ColorfulSprite(image).apply {
+        setSize(5f, 5f)
+        setOrigin(0.5f, 0.5f)
+        setPosition(Random.nextFloat() * WORLD_WIDTH, Random.nextFloat() * WORLD_WIDTH)
+        rotate(Random.nextFloat() * 360)
+        color = ColorTools.fromColor(Color.CORAL)
+    }
     private val batch = ColorfulBatch()
 
     private val viewport = FitViewport(WORLD_WIDTH, WORLD_HEIGHT)
@@ -40,7 +54,7 @@ class GameScreen : KtxScreen {
         batch.projectionMatrix = viewport.camera.combined
         batch.use {
             it.setColor(Palette.YELLOW)
-            it.draw(image, 10f, 15f, 10f, 10f)
+            personSprite.draw(it)
         }
     }
 
