@@ -6,7 +6,7 @@
 # separate terms of service, privacy policy, and support
 # documentation.
 
-name: Maven build
+name: Gradle build
 
 on:
   workflow_dispatch:
@@ -28,5 +28,11 @@ jobs:
         java-version: '21'
         distribution: 'temurin'
         cache: maven
-    - name: Build with Maven
-      run: mvn -B -U verify
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v4.0.0
+
+    - name: Build with Gradle Wrapper
+      run: ./gradlew build
+
+    - name: Test with Gradle Wrapper
+      run: ./gradlew test
