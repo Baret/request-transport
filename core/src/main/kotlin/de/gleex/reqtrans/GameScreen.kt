@@ -18,6 +18,7 @@ import ktx.app.clearScreen
 import ktx.assets.disposeSafely
 import ktx.assets.toInternalFile
 import ktx.graphics.use
+import ktx.math.ImmutableVector2
 import ktx.math.toImmutable
 import ktx.math.toMutable
 import space.earlygrey.simplegraphs.Path
@@ -122,7 +123,26 @@ class GameScreen : KtxScreen {
     }
 
     private fun personAimsAtTarget(): Boolean {
-        return true
+        val targetPos = personPath?.first?.position
+        if(targetPos == null) {
+            return false
+        }
+        val fromPos = ImmutableVector2(personSprite.x, personSprite.y)
+        val angleInDegrees = angleBetween(targetPos, fromPos)
+
+        return angleInDegrees > 2f
+    }
+
+    /**
+     * Calculates the angle in degrees between the given vertices from the X axis.
+     */
+    private fun angleBetween(targetPos: ImmutableVector2, fromPos: ImmutableVector2): Float {
+        val difference: ImmutableVector2 = (targetPos - fromPos)
+        val direction: ImmutableVector2 = difference.nor
+        val dotProduct: Float = Vector2.X.dot(direction.toMutable())
+        val angleInRadians = MathUtils.acos(dotProduct)
+        val angleInDegrees = angleInRadians * MathUtils.radiansToDegrees
+        return angleInDegrees
     }
 
     private fun draw() {
