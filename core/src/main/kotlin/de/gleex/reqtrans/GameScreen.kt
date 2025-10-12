@@ -130,7 +130,7 @@ class GameScreen : KtxScreen {
         val fromPos = ImmutableVector2(personSprite.x, personSprite.y)
         val angleInDegrees = angleBetween(targetPos, fromPos)
 
-        return angleInDegrees > 2f
+        return angleInDegrees < 1f
     }
 
     /**
