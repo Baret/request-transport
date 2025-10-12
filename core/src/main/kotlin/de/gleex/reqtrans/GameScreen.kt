@@ -1,14 +1,13 @@
 package de.gleex.reqtrans
 
 import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.InputAdapter
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
+import com.badlogic.gdx.math.MathUtils
 import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.viewport.FitViewport
-import com.github.tommyettinger.colorful.rgb.ColorTools
 import com.github.tommyettinger.colorful.rgb.ColorfulBatch
 import com.github.tommyettinger.colorful.rgb.ColorfulSprite
 import com.github.tommyettinger.colorful.rgb.Palette
@@ -21,7 +20,9 @@ import ktx.assets.toInternalFile
 import ktx.graphics.use
 import ktx.math.toImmutable
 import ktx.math.toMutable
+import space.earlygrey.simplegraphs.Path
 import space.earlygrey.simplegraphs.UndirectedGraph
+import space.earlygrey.simplegraphs.algorithms.UndirectedGraphAlgorithms
 import kotlin.random.Random
 
 class GameScreen : KtxScreen {
@@ -57,14 +58,16 @@ class GameScreen : KtxScreen {
 
     private val graph = UndirectedGraph<Building>()
 
+    private var personPath: Path<Building?>? = null
+
     override fun render(delta: Float) {
         input()
-        logic()
+        logic(delta)
         draw()
     }
 
     private fun input() {
-        if(Gdx.input.isTouched) {
+        if (Gdx.input.isTouched) {
             val screenX = Gdx.input.x
             val screenY = Gdx.input.y
             val buildingPos = viewport.unproject(Vector2(screenX.toFloat(), screenY.toFloat()))
@@ -91,8 +94,35 @@ class GameScreen : KtxScreen {
         }
     }
 
-    private fun logic() {
-        // TODO game logic
+    private fun logic(delta: Float) {
+        if (personPath == null && graph.vertices.size >= 2) {
+            val pathSearch = UndirectedGraphAlgorithms(graph).newAstarSeach(
+                graph.vertices.random(),
+                graph.vertices.random(),
+                { a, b -> a.distanceTo(b) },
+                {})
+            pathSearch.finish()
+            personPath = pathSearch.path
+        }
+        if(personPath != null) {
+            if(personAimsAtTarget()) {
+                movePersonToTarget(delta)
+            } else {
+                turnPersonToTarget(delta)
+            }
+        }
+    }
+
+    private fun movePersonToTarget(delta: Float) {
+        TODO("Not yet implemented")
+    }
+
+    private fun turnPersonToTarget(delta: Float) {
+        TODO("Not yet implemented")
+    }
+
+    private fun personAimsAtTarget(): Boolean {
+        return true
     }
 
     private fun draw() {
