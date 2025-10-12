@@ -4,6 +4,7 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.InputAdapter
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.Texture
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.viewport.FitViewport
@@ -19,6 +20,7 @@ import ktx.assets.disposeSafely
 import ktx.assets.toInternalFile
 import ktx.graphics.use
 import ktx.math.toImmutable
+import ktx.math.toMutable
 import space.earlygrey.simplegraphs.UndirectedGraph
 import kotlin.random.Random
 
@@ -36,7 +38,7 @@ class GameScreen : KtxScreen {
         setOrigin(0.5f, 0.5f)
         setPosition(Random.nextFloat() * WORLD_WIDTH, Random.nextFloat() * WORLD_WIDTH)
         rotate(Random.nextFloat() * 360)
-        color = ColorTools.fromColor(Color.CORAL)
+        color = Palette.BRONZE_SKIN_1
     }
 
     private val houseTexture = Texture(
@@ -48,6 +50,7 @@ class GameScreen : KtxScreen {
 
     private val houseSprites: Array<ColorfulSprite> = Array()
 
+    private val shapeRenderer = ShapeRenderer()
     private val batch = ColorfulBatch()
 
     private val viewport = FitViewport(WORLD_WIDTH, WORLD_HEIGHT)
@@ -69,7 +72,6 @@ class GameScreen : KtxScreen {
             if (graph.vertices.any { it.distanceTo(newBuilding) < 20f }) {
                 return
             }
-            println("Adding house at touch pos $screenX|$screenY => $buildingPos")
             graph.addVertex(newBuilding)
             graph.vertices
                 .filter { it != newBuilding }
@@ -96,13 +98,21 @@ class GameScreen : KtxScreen {
     private fun draw() {
         clearScreen(red = 0.7f, green = 0.7f, blue = 0.7f)
         viewport.apply()
-        batch.projectionMatrix = viewport.camera.combined
-        batch.use {
-            it.packedColor = Palette.YELLOW
-            personSprite.draw(it)
-            houseSprites.forEach { house ->
-                house.draw(it)
+
+        shapeRenderer.projectionMatrix = viewport.camera.combined
+        shapeRenderer.use(ShapeRenderer.ShapeType.Line, viewport.camera) { renderer ->
+            renderer.color = Color.BLACK
+            graph.edges.forEach { edge ->
+                renderer.line(edge.a.position.toMutable(), edge.b.position.toMutable())
             }
+        }
+
+        batch.projectionMatrix = viewport.camera.combined
+        batch.use { batch ->
+            houseSprites.forEach { house ->
+                house.draw(batch)
+            }
+            personSprite.draw(batch)
         }
     }
 
