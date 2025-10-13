@@ -4,6 +4,7 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
+import com.badlogic.gdx.math.CatmullRomSpline
 import com.badlogic.gdx.math.MathUtils
 import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.utils.Array
@@ -25,6 +26,7 @@ import space.earlygrey.simplegraphs.Path
 import space.earlygrey.simplegraphs.UndirectedGraph
 import space.earlygrey.simplegraphs.algorithms.UndirectedGraphAlgorithms
 import kotlin.math.abs
+import kotlin.math.min
 import kotlin.random.Random
 
 class GameScreen : KtxScreen {
@@ -66,6 +68,9 @@ class GameScreen : KtxScreen {
     private val graph = UndirectedGraph<Building>()
 
     private var personPath: Path<Building?>? = null
+    private var splinePath: CatmullRomSpline<Vector2>? = null
+    private var turnProgress = 0f
+    private var moveProgress = 0f
 
     override fun render(delta: Float) {
         input()
@@ -111,10 +116,21 @@ class GameScreen : KtxScreen {
                 {})
             pathSearch.finish()
             personPath = pathSearch.path
+            val allVertices: List<Vector2> = listOf(Vector2(personSprite.x, personSprite.y)) + pathSearch.path.map { it.position.toMutable() }
+            splinePath = CatmullRomSpline(allVertices.toTypedArray(), false)
+            turnProgress = 0f
+            moveProgress = 0f
+
         }
         if (personPath != null) {
             if (personAimsAtTarget()) {
                 movePersonToTarget(delta)
+                if(personReachedTarget()) {
+                    personPath?.remove(0)
+                    if(personPath?.isEmpty() ?: false) {
+                        personPath = null
+                    }
+                }
             } else {
                 turnPersonToTarget(delta)
             }
@@ -122,7 +138,24 @@ class GameScreen : KtxScreen {
     }
 
     private fun movePersonToTarget(delta: Float) {
-        TODO("Not yet implemented")
+        val moveAmount = 10f * delta
+        moveProgress += moveAmount
+        val newPos = Vector2(personSprite.x, personSprite.y)
+        splinePath?.valueAt(newPos, moveProgress)
+        personSprite.x = newPos.x
+        personSprite.y = newPos.y
+    }
+
+    private fun personReachedTarget(): Boolean {
+        return personPath?.let { path ->
+            val firstPosition = path.first
+                ?.position
+            if(firstPosition != null) {
+                firstPosition != Vector2(personSprite.x, personSprite.y)
+            } else {
+                true
+            }
+        } ?: true
     }
 
     private fun turnPersonToTarget(delta: Float) {
@@ -152,10 +185,16 @@ class GameScreen : KtxScreen {
         if (targetPos == null) {
             return false
         }
-        val fromPos = ImmutableVector2(personSprite.x, personSprite.y)
-        val angleInDegrees = angleBetween(fromPos, targetPos)
-
-        return abs(angleInDegrees - personSprite.rotation) < 1f
+        // TODO: use Vector2.angleDeg(v)
+        val fromPos = Vector2(personSprite.x, personSprite.y)
+        return MathUtils.isEqual(
+            fromPos.angleDeg(targetPos.toMutable()),
+            personSprite.rotation,
+            1f
+        )
+//        val angleInDegrees = angleBetween(fromPos, targetPos)
+//
+//        return abs(angleInDegrees - personSprite.rotation) < 1f
     }
 
     /**
