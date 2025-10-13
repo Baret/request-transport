@@ -37,9 +37,14 @@ class GameScreen : KtxScreen {
 
     private val personSprite = ColorfulSprite(personImage).apply {
         setSize(5f, 5f)
-        setOrigin(0.5f, 0.5f)
+        setOrigin(width / 2f, height / 2f)
         setPosition(Random.nextFloat() * WORLD_WIDTH, Random.nextFloat() * WORLD_WIDTH)
-        rotate(Random.nextFloat() * 360)
+        val degrees = Random.nextFloat() * 360
+        rotate(degrees)
+        Gdx.app.log(
+            "spriteInit",
+            "pos = ($x|$y), rotated personSprite initially by $degrees degrees, current = $rotation"
+        )
         color = Palette.BRONZE_SKIN_1
     }
 
@@ -89,6 +94,7 @@ class GameScreen : KtxScreen {
             val newSprite = ColorfulSprite(houseTexture).apply {
                 setPosition(buildingPos.x - (Building.WIDTH / 2f), buildingPos.y - (Building.HEIGHT / 2f))
                 setSize(Building.WIDTH, Building.HEIGHT)
+                setOrigin(width / 2f, height / 2f)
                 color = Palette.COAL_BLACK
             }
             houseSprites.add(newSprite)
@@ -105,8 +111,8 @@ class GameScreen : KtxScreen {
             pathSearch.finish()
             personPath = pathSearch.path
         }
-        if(personPath != null) {
-            if(personAimsAtTarget()) {
+        if (personPath != null) {
+            if (personAimsAtTarget()) {
                 movePersonToTarget(delta)
             } else {
                 turnPersonToTarget(delta)
@@ -119,30 +125,54 @@ class GameScreen : KtxScreen {
     }
 
     private fun turnPersonToTarget(delta: Float) {
-        TODO("Not yet implemented")
+        val turnSpeed = 20f // degrees per second I guess?
+        val targetPos = personPath?.first?.position ?: return
+        val fromPos = ImmutableVector2(personSprite.x, personSprite.y)
+        val angleInDegrees = angleBetween(fromPos, targetPos)
+
+        val turnAmount = turnSpeed * delta
+        Gdx.app.log("turning", "Current rotation ${personSprite.rotation}")
+        if (angleInDegrees < 180f) {
+            personSprite.rotation += turnAmount
+        } else {
+            personSprite.rotation -= turnAmount
+        }
     }
 
     private fun personAimsAtTarget(): Boolean {
         val targetPos = personPath?.first?.position
-        if(targetPos == null) {
+        if (targetPos == null) {
             return false
         }
         val fromPos = ImmutableVector2(personSprite.x, personSprite.y)
-        val angleInDegrees = angleBetween(targetPos, fromPos)
+        val angleInDegrees = angleBetween(fromPos, targetPos)
 
         return angleInDegrees < 1f
     }
 
     /**
-     * Calculates the angle in degrees between the given vertices from the X axis.
+     * Calculates the angle in degrees between the given vertices from the Y axis, counterclockwise.
+     *
+     * This is the same angle that Sprite uses in its rotation value.
+     *
+     * @see ColorfulSprite.setRotation
      */
-    private fun angleBetween(targetPos: ImmutableVector2, fromPos: ImmutableVector2): Float {
+    private fun angleBetween(fromPos: ImmutableVector2, targetPos: ImmutableVector2): Float {
+        if (fromPos == targetPos) {
+            return 0f
+        }
         val difference: ImmutableVector2 = (targetPos - fromPos)
         val direction: ImmutableVector2 = difference.nor
-        val dotProduct: Float = Vector2.X.dot(direction.toMutable())
+        val dotProduct: Float = Vector2.Y.dot(direction.toMutable())
         val angleInRadians = MathUtils.acos(dotProduct)
         val angleInDegrees = angleInRadians * MathUtils.radiansToDegrees
-        return angleInDegrees
+        val angleCounterClockwise = if (fromPos.x <= targetPos.x) {
+            angleInDegrees
+        } else {
+            360f - angleInDegrees
+        }
+        Gdx.app.log("angleMath", "$fromPos => $targetPos = $angleCounterClockwise")
+        return angleCounterClockwise
     }
 
     private fun draw() {
