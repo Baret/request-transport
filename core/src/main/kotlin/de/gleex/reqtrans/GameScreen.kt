@@ -24,6 +24,7 @@ import ktx.math.toMutable
 import space.earlygrey.simplegraphs.Path
 import space.earlygrey.simplegraphs.UndirectedGraph
 import space.earlygrey.simplegraphs.algorithms.UndirectedGraphAlgorithms
+import kotlin.math.abs
 import kotlin.random.Random
 
 class GameScreen : KtxScreen {
@@ -132,6 +133,7 @@ class GameScreen : KtxScreen {
 
         val turnAmount = turnSpeed * delta
         Gdx.app.log("turning", "Current rotation ${personSprite.rotation}")
+
         if (angleInDegrees < 180f) {
             personSprite.rotation += turnAmount
         } else {
@@ -147,7 +149,7 @@ class GameScreen : KtxScreen {
         val fromPos = ImmutableVector2(personSprite.x, personSprite.y)
         val angleInDegrees = angleBetween(fromPos, targetPos)
 
-        return angleInDegrees < 1f
+        return abs(angleInDegrees - personSprite.rotation) < 1f
     }
 
     /**
