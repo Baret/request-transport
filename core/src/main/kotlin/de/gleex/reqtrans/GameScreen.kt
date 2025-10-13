@@ -131,13 +131,19 @@ class GameScreen : KtxScreen {
         val fromPos = ImmutableVector2(personSprite.x, personSprite.y)
         val angleInDegrees = angleBetween(fromPos, targetPos)
 
-        val turnAmount = turnSpeed * delta
-        Gdx.app.log("turning", "Current rotation ${personSprite.rotation}")
+        val turnAmount = min(turnSpeed * delta, abs(personSprite.rotation - angleInDegrees))
 
+        Gdx.app.log("turning", "Turning by $turnAmount degrees, current rotation ${personSprite.rotation}")
         if (angleInDegrees < 180f) {
             personSprite.rotation += turnAmount
         } else {
             personSprite.rotation -= turnAmount
+        }
+        if(personSprite.rotation > 360f) {
+            personSprite.rotation -= 360f
+        }
+        if(personSprite.rotation < 0f) {
+            personSprite.rotation += 360f
         }
     }
 
