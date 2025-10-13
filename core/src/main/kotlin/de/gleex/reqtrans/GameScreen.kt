@@ -210,19 +210,15 @@ class GameScreen : KtxScreen {
      *
      * @see ColorfulSprite.setRotation
      */
-    private fun angleBetween(fromPos: ImmutableVector2, targetPos: ImmutableVector2): Float {
+    private fun angleBetween(fromPos: Vector2, targetPos: Vector2): Float {
         if (fromPos == targetPos) {
             return 0f
         }
-        val difference: ImmutableVector2 = (targetPos - fromPos)
-        val direction: ImmutableVector2 = difference.nor
-        val dotProduct: Float = Vector2.Y.dot(direction.toMutable())
-        val angleInRadians = MathUtils.acos(dotProduct)
-        val angleInDegrees = angleInRadians * MathUtils.radiansToDegrees
-        val angleCounterClockwise = if (fromPos.x <= targetPos.x) {
-            angleInDegrees
+        val atan2Deg360 = MathUtils.atan2Deg360(targetPos.x - fromPos.y, targetPos.y - fromPos.x)
+        val angleCounterClockwise = if(atan2Deg360 == 0f) {
+            0f
         } else {
-            360f - angleInDegrees
+            360f - atan2Deg360
         }
         Gdx.app.log("angleMath", "$fromPos => $targetPos = $angleCounterClockwise")
         return angleCounterClockwise
