@@ -120,7 +120,6 @@ class GameScreen : KtxScreen {
             splinePath = CatmullRomSpline(allVertices.toTypedArray(), false)
             turnProgress = 0f
             moveProgress = 0f
-
         }
         if (personPath != null) {
             if (personAimsAtTarget()) {
@@ -129,6 +128,7 @@ class GameScreen : KtxScreen {
                     personPath?.remove(0)
                     if(personPath?.isEmpty() ?: false) {
                         personPath = null
+                        splinePath = null
                     }
                 }
             } else {
@@ -138,7 +138,7 @@ class GameScreen : KtxScreen {
     }
 
     private fun movePersonToTarget(delta: Float) {
-        val moveAmount = 10f * delta
+        val moveAmount = 1f * delta
         moveProgress += moveAmount
         val newPos = Vector2(personSprite.x, personSprite.y)
         splinePath?.valueAt(newPos, moveProgress)
@@ -147,33 +147,29 @@ class GameScreen : KtxScreen {
     }
 
     private fun personReachedTarget(): Boolean {
-        return personPath?.let { path ->
-            val firstPosition = path.first
-                ?.position
-            if(firstPosition != null) {
-                firstPosition != Vector2(personSprite.x, personSprite.y)
-            } else {
-                true
-            }
-        } ?: true
+        val target = currentPersonTarget()
+        return if (target != null) {
+            val personPos = Vector2(personSprite.x, personSprite.y)
+            Gdx.app.log("reachCalc", "target=$target personPos=$personPos")
+            target != personPos
+        } else {
+            true
+        }
     }
 
     private fun turnPersonToTarget(delta: Float) {
         val turnSpeed = 20f // degrees per second I guess?
-        val targetPos = personPath?.first?.position ?: return
+        val targetPos = currentPersonTarget() ?: return
         val fromPos = ImmutableVector2(personSprite.x, personSprite.y)
-        val angleInDegrees = angleBetween(fromPos, targetPos)
+        val angleInDegrees = fromPos.toMutable().angleDeg(targetPos) //angleBetween(fromPos, targetPos)
 
         val turnAmount = min(turnSpeed * delta, abs(personSprite.rotation - angleInDegrees))
 
         Gdx.app.log("turning", "Turning by $turnAmount degrees, current rotation ${personSprite.rotation}")
-        if (angleInDegrees < 180f) {
-            personSprite.rotation += turnAmount
-        } else {
-            personSprite.rotation -= turnAmount
-        }
+        // TODO check if turning right or left is better
+        personSprite.rotation += turnAmount
         if(personSprite.rotation > 360f) {
-            personSprite.rotation -= 360f
+            personSprite.rotation = 360f - personSprite.rotation
         }
         if(personSprite.rotation < 0f) {
             personSprite.rotation += 360f
@@ -181,20 +177,30 @@ class GameScreen : KtxScreen {
     }
 
     private fun personAimsAtTarget(): Boolean {
-        val targetPos = personPath?.first?.position
+        val targetPos = currentPersonTarget()
         if (targetPos == null) {
             return false
         }
         // TODO: use Vector2.angleDeg(v)
         val fromPos = Vector2(personSprite.x, personSprite.y)
+        val angleDeg = fromPos.angleDeg(targetPos)
+        Gdx.app.log("aimCheck", "angleDeg from $fromPos to $targetPos = $angleDeg")
         return MathUtils.isEqual(
-            fromPos.angleDeg(targetPos.toMutable()),
+            angleDeg,
             personSprite.rotation,
             1f
         )
 //        val angleInDegrees = angleBetween(fromPos, targetPos)
 //
 //        return abs(angleInDegrees - personSprite.rotation) < 1f
+    }
+
+    private fun currentPersonTarget(): Vector2? {
+        val path = personPath
+        if(path != null && path.isNotEmpty()) {
+            return path.first?.position?.toMutable()
+        }
+        return null
     }
 
     /**
