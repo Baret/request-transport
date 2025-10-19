@@ -36,6 +36,8 @@ class PersonActor: Actor() {
 
     override fun draw(batch: Batch?, parentAlpha: Float) {
         if(batch != null && batch is ColorfulBatch) {
+            personSprite.setPosition(this.x, this.y)
+            personSprite.rotation = this.rotation
             personSprite.draw(batch)
         }
     }

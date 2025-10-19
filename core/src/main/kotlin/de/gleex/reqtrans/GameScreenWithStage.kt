@@ -20,11 +20,11 @@ class GameScreenWithStage : KtxScreen {
 
     init {
         stage.addListener(PersonSender(person))
+        stage.addActor(person)
 
         person.setPosition(20f, 30f)
         person.rotation = Random.nextFloat() * 359
 
-        stage.addActor(person)
         Gdx.input.inputProcessor = stage
     }
 

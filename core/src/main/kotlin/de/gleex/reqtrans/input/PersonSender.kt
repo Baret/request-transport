@@ -12,7 +12,7 @@ class PersonSender(private val person: PersonActor) : InputListener() {
     override fun touchDown(event: InputEvent?, x: Float, y: Float, pointer: Int, button: Int): Boolean {
         Gdx.app.log("personSender", "touchUp at $x | $y, pointer=$pointer, button=$button")
         if (button == 0) {
-            val targetPos = Vector2(x, y)
+            val targetPos = Vector2(x + person.originX, y + person.originY)
             val targetAngle = MathUtils.atan2Deg360(targetPos.x - person.y, targetPos.y - person.x)
             Gdx.app.log("personSender", "Telling person to turn to $targetAngle° and then move to $targetPos")
             person.addAction(
