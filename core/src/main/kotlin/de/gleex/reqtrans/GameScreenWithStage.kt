@@ -5,6 +5,7 @@ import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.utils.viewport.FitViewport
 import com.github.tommyettinger.colorful.rgb.ColorfulBatch
 import de.gleex.reqtrans.actors.PersonActor
+import de.gleex.reqtrans.input.PersonSender
 import de.gleex.reqtrans.model.WorldDimensions.WORLD_HEIGHT
 import de.gleex.reqtrans.model.WorldDimensions.WORLD_WIDTH
 import ktx.app.KtxScreen
@@ -18,6 +19,8 @@ class GameScreenWithStage : KtxScreen {
     private val person = PersonActor()
 
     init {
+        stage.addListener(PersonSender(person))
+
         person.setPosition(20f, 30f)
         person.rotation = Random.nextFloat() * 359
 
