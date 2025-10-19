@@ -19,14 +19,15 @@ import ktx.app.clearScreen
 import ktx.assets.disposeSafely
 import ktx.assets.toInternalFile
 import ktx.graphics.use
-import ktx.math.ImmutableVector2
 import ktx.math.toImmutable
 import ktx.math.toMutable
 import space.earlygrey.simplegraphs.Path
 import space.earlygrey.simplegraphs.UndirectedGraph
 import space.earlygrey.simplegraphs.algorithms.UndirectedGraphAlgorithms
 import kotlin.math.abs
+import kotlin.math.cos
 import kotlin.math.min
+import kotlin.math.sin
 import kotlin.random.Random
 
 class GameScreen : KtxScreen {
@@ -48,6 +49,16 @@ class GameScreen : KtxScreen {
             "spriteInit",
             "pos = ($x|$y), rotated personSprite initially by $degrees degrees, current = $rotation"
         )
+        listOf(0f, 50f, 100f).forEach { tx ->
+            listOf(0f, 50f, 100f).forEach { ty ->
+                val testFrom = Vector2(50f, 50f)
+                val testTo = Vector2(tx, ty)
+                Gdx.app.log(
+                    "testAngleDeg",
+                    "angleDeg $testFrom => $testTo = ${angleBetween(testFrom, testTo)} | MathUtils = ${360f - MathUtils.atan2Deg360(testTo.x - testFrom.y, testTo.y - testFrom.x)}"
+                )
+            }
+        }
         color = Palette.BRONZE_SKIN_1
     }
 
@@ -91,11 +102,13 @@ class GameScreen : KtxScreen {
             graph.vertices
                 .filter { it != newBuilding }
                 .forEach { oldBuilding ->
-                    graph.addEdge(
-                        oldBuilding,
-                        newBuilding,
-                        -oldBuilding.distanceTo(newBuilding)
-                    )
+                    if(Random.nextDouble() > 0.77) {
+                        graph.addEdge(
+                            oldBuilding,
+                            newBuilding,
+                            -oldBuilding.distanceTo(newBuilding)
+                        )
+                    }
                 }
             val newSprite = ColorfulSprite(houseTexture).apply {
                 setPosition(buildingPos.x - (Building.WIDTH / 2f), buildingPos.y - (Building.HEIGHT / 2f))
@@ -116,62 +129,87 @@ class GameScreen : KtxScreen {
                 {})
             pathSearch.finish()
             personPath = pathSearch.path
-            val allVertices: List<Vector2> = listOf(Vector2(personSprite.x, personSprite.y)) + pathSearch.path.map { it.position.toMutable() }
+            val allVertices: List<Vector2> =
+                listOf(getPersonPos()) + pathSearch.path.map { it.position.toMutable() }
             splinePath = CatmullRomSpline(allVertices.toTypedArray(), false)
             turnProgress = 0f
             moveProgress = 0f
         }
+        if (personReachedTarget()) {
+            personPath?.takeIf { it.isNotEmpty() }
+                ?.remove(0)
+            if (personPath?.isEmpty() ?: false) {
+                personPath = null
+                splinePath = null
+            }
+        }
         if (personPath != null) {
             if (personAimsAtTarget()) {
-                movePersonToTarget(delta)
-                if(personReachedTarget()) {
-                    personPath?.remove(0)
-                    if(personPath?.isEmpty() ?: false) {
-                        personPath = null
-                        splinePath = null
-                    }
-                }
+                movePersonForward(delta)
             } else {
                 turnPersonToTarget(delta)
             }
         }
     }
 
-    private fun movePersonToTarget(delta: Float) {
+    private fun movePersonForward(delta: Float) {
         val moveAmount = 1f * delta
         moveProgress += moveAmount
-        val newPos = Vector2(personSprite.x, personSprite.y)
-        splinePath?.valueAt(newPos, moveProgress)
-        personSprite.x = newPos.x
-        personSprite.y = newPos.y
+        val targetPos = currentPersonTarget()
+        if(targetPos != null) {
+            val personPos = getPersonPos()
+            val angle = personSprite.rotation
+            val xDiff = moveAmount * cos(angle)
+            val yDiff = moveAmount * sin(angle)
+            Gdx.app.log("movePerson", "moving person from $personPos by x + $xDiff | y + $yDiff")
+            personSprite.x += xDiff
+            personSprite.y += yDiff
+        }
+
+//        CatmullRomSpline.calculate(
+//            newPos,
+//            moveAmount,
+//            arrayOf(getPersonPos(), currentPersonTarget()),
+//            false,
+//            Vector2()
+//        )
+//
+////        splinePath?.valueAt(newPos, moveProgress)
+//        personSprite.x = newPos.x
+//        personSprite.y = newPos.y
     }
 
     private fun personReachedTarget(): Boolean {
         val target = currentPersonTarget()
         return if (target != null) {
-            val personPos = Vector2(personSprite.x, personSprite.y)
+            val personPos = getPersonPos()
             Gdx.app.log("reachCalc", "target=$target personPos=$personPos")
-            target != personPos
+            target == personPos
         } else {
             true
         }
     }
 
     private fun turnPersonToTarget(delta: Float) {
-        val turnSpeed = 20f // degrees per second I guess?
+        val turnSpeed = 30f // degrees per second I guess?
         val targetPos = currentPersonTarget() ?: return
-        val fromPos = ImmutableVector2(personSprite.x, personSprite.y)
-        val angleInDegrees = fromPos.toMutable().angleDeg(targetPos) //angleBetween(fromPos, targetPos)
+        val fromPos = getPersonPos()
+        val targetAngle = angleBetween(fromPos, targetPos) // fromPos.toMutable().angleDeg(targetPos) //
 
-        val turnAmount = min(turnSpeed * delta, abs(personSprite.rotation - angleInDegrees))
+        val angleDiff = personSprite.rotation - targetAngle
+        val turnAmount = min(turnSpeed * delta, abs(angleDiff))
 
         Gdx.app.log("turning", "Turning by $turnAmount degrees, current rotation ${personSprite.rotation}")
         // TODO check if turning right or left is better
-        personSprite.rotation += turnAmount
-        if(personSprite.rotation > 360f) {
+        if(angleDiff > 0f) {
+            personSprite.rotation -= turnAmount
+        } else {
+            personSprite.rotation += turnAmount
+        }
+        if (personSprite.rotation > 360f) {
             personSprite.rotation = 360f - personSprite.rotation
         }
-        if(personSprite.rotation < 0f) {
+        if (personSprite.rotation < 0f) {
             personSprite.rotation += 360f
         }
     }
@@ -182,22 +220,25 @@ class GameScreen : KtxScreen {
             return false
         }
         // TODO: use Vector2.angleDeg(v)
-        val fromPos = Vector2(personSprite.x, personSprite.y)
-        val angleDeg = fromPos.angleDeg(targetPos)
-        Gdx.app.log("aimCheck", "angleDeg from $fromPos to $targetPos = $angleDeg")
-        return MathUtils.isEqual(
-            angleDeg,
-            personSprite.rotation,
-            1f
-        )
-//        val angleInDegrees = angleBetween(fromPos, targetPos)
-//
-//        return abs(angleInDegrees - personSprite.rotation) < 1f
+        val fromPos = getPersonPos()
+//        val angleDeg = fromPos.angleDeg(targetPos)
+//        Gdx.app.log("aimCheck", "angleDeg from $fromPos to $targetPos = $angleDeg")
+//        return MathUtils.isEqual(
+//            angleDeg,
+//            personSprite.rotation,
+//            1f
+//        )
+        val angleInDegrees = angleBetween(fromPos, targetPos)
+
+//        Gdx.app.log("aimCheck", "angle (own) from $fromPos to $targetPos = $angleInDegrees")
+        return angleInDegrees == personSprite.rotation
     }
+
+    private fun getPersonPos(): Vector2 = Vector2(personSprite.x + personSprite.originX, personSprite.y + personSprite.originY)
 
     private fun currentPersonTarget(): Vector2? {
         val path = personPath
-        if(path != null && path.isNotEmpty()) {
+        if (path != null && path.isNotEmpty()) {
             return path.first?.position?.toMutable()
         }
         return null
@@ -233,6 +274,18 @@ class GameScreen : KtxScreen {
             renderer.color = Color.BLACK
             graph.edges.forEach { edge ->
                 renderer.line(edge.a.position.toMutable(), edge.b.position.toMutable())
+            }
+
+            val path = personPath
+            if (path != null && path.isNotEmpty()) {
+                renderer.color = Color.FIREBRICK
+                var current = Vector2(personSprite.x + personSprite.originX, personSprite.y + personSprite.originY)
+                path.map { it?.position }
+                    .mapNotNull { it?.toMutable() }
+                    .forEach { p ->
+                        renderer.rectLine(current, p, 0.2f)
+                        current = p
+                    }
             }
         }
 
