@@ -14,6 +14,9 @@ import com.github.tommyettinger.colorful.rgb.ColorfulSprite
 import com.github.tommyettinger.colorful.rgb.Palette
 import de.gleex.reqtrans.model.Building
 import de.gleex.reqtrans.model.House
+import de.gleex.reqtrans.model.WorldDimensions
+import de.gleex.reqtrans.model.WorldDimensions.WORLD_HEIGHT
+import de.gleex.reqtrans.model.WorldDimensions.WORLD_WIDTH
 import ktx.app.KtxScreen
 import ktx.app.clearScreen
 import ktx.assets.disposeSafely
@@ -305,10 +308,5 @@ class GameScreen : KtxScreen {
 
     override fun resize(width: Int, height: Int) {
         viewport.update(width, height, true)
-    }
-
-    companion object {
-        private const val WORLD_WIDTH = 100f
-        private const val WORLD_HEIGHT = 100f
     }
 }
